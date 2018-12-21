@@ -1,6 +1,6 @@
 package com.nettyrpc.test.app;
 
-import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.RpcFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.test.client.PersonService;
@@ -30,14 +30,14 @@ public class ServiceTest {
 
     @Test
     public void helloTest1() {
-        HelloService helloService = rpcClient.create(HelloService.class);
+        HelloService helloService = RpcClient.create(HelloService.class);
         String result = helloService.hello("World");
         Assert.assertEquals("Hello! World", result);
     }
 
     @Test
     public void helloTest2() {
-        HelloService helloService = rpcClient.create(HelloService.class);
+        HelloService helloService = RpcClient.create(HelloService.class);
         Person person = new Person("Yong", "Huang");
         String result = helloService.hello(person);
         Assert.assertEquals("Hello! Yong Huang", result);
@@ -45,7 +45,7 @@ public class ServiceTest {
 
     @Test
     public void helloTest3() throws InterruptedException {
-        HelloService helloService = rpcClient.create(HelloService.class);
+        HelloService helloService = RpcClient.create(HelloService.class);
         for (int i = 0; i < 300; i++) {
             String result = helloService.hello("World");
             System.out.println(result);
@@ -55,7 +55,7 @@ public class ServiceTest {
 
     @Test
     public void helloPersonTest() {
-        PersonService personService = rpcClient.create(PersonService.class);
+        PersonService personService = RpcClient.create(PersonService.class);
         int num = 5;
         List<Person> persons = personService.GetTestPerson("xiaoming", num);
         List<Person> expectedPersons = new ArrayList<>();
@@ -64,31 +64,31 @@ public class ServiceTest {
         }
         assertThat(persons, equalTo(expectedPersons));
 
-        for (int i = 0; i < persons.size(); ++i) {
-            System.out.println(persons.get(i));
+        for (Person person : persons) {
+            System.out.println(person);
         }
     }
 
     @Test
     public void helloFutureTest1() throws ExecutionException, InterruptedException {
-        IAsyncObjectProxy helloService = rpcClient.createAsync(HelloService.class);
-        RPCFuture result = helloService.call("hello", "World");
+        IAsyncObjectProxy helloService = RpcClient.createAsync(HelloService.class);
+        RpcFuture result = helloService.call("hello", "World");
         Assert.assertEquals("Hello! World", result.get());
     }
 
     @Test
     public void helloFutureTest2() throws ExecutionException, InterruptedException {
-        IAsyncObjectProxy helloService = rpcClient.createAsync(HelloService.class);
+        IAsyncObjectProxy helloService = RpcClient.createAsync(HelloService.class);
         Person person = new Person("Yong", "Huang");
-        RPCFuture result = helloService.call("hello", person);
+        RpcFuture result = helloService.call("hello", person);
         Assert.assertEquals("Hello! Yong Huang", result.get());
     }
 
     @Test
     public void helloPersonFutureTest1() throws ExecutionException, InterruptedException {
-        IAsyncObjectProxy helloPersonService = rpcClient.createAsync(PersonService.class);
+        IAsyncObjectProxy helloPersonService = RpcClient.createAsync(PersonService.class);
         int num = 5;
-        RPCFuture result = helloPersonService.call("GetTestPerson", "xiaoming", num);
+        RpcFuture result = helloPersonService.call("GetTestPerson", "xiaoming", num);
         List<Person> persons = (List<Person>) result.get();
         List<Person> expectedPersons = new ArrayList<>();
         for (int i = 0; i < num; i++) {

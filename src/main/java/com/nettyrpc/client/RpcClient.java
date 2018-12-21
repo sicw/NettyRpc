@@ -6,6 +6,7 @@ import com.nettyrpc.registry.ServiceDiscovery;
 
 import java.lang.reflect.Proxy;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -18,8 +19,14 @@ public class RpcClient {
 
     private String serverAddress;
     private ServiceDiscovery serviceDiscovery;
+    private final static String THREAD_NAME = "invoke-callback";
     private static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(16, 16,
-            600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536));
+            600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536), new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r,THREAD_NAME);
+        }
+    });
 
     public RpcClient(String serverAddress) {
         this.serverAddress = serverAddress;

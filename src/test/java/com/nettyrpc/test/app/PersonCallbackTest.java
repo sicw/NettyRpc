@@ -1,7 +1,7 @@
 package com.nettyrpc.test.app;
 
-import com.nettyrpc.client.AsyncRPCCallback;
-import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.AsyncRpcCallback;
+import com.nettyrpc.client.RpcFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.registry.ServiceDiscovery;
@@ -21,15 +21,15 @@ public class PersonCallbackTest {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
 
         try {
-            IAsyncObjectProxy client = rpcClient.createAsync(PersonService.class);
+            IAsyncObjectProxy client = RpcClient.createAsync(PersonService.class);
             int num = 5;
-            RPCFuture helloPersonFuture = client.call("GetTestPerson", "xiaoming", num);
-            helloPersonFuture.addCallback(new AsyncRPCCallback() {
+            RpcFuture helloPersonFuture = client.call("GetTestPerson", "xiaoming", num);
+            helloPersonFuture.addCallback(new AsyncRpcCallback() {
                 @Override
                 public void success(Object result) {
                     List<Person> persons = (List<Person>) result;
-                    for (int i = 0; i < persons.size(); ++i) {
-                        System.out.println(persons.get(i));
+                    for (Person person : persons) {
+                        System.out.println(person);
                     }
                     countDownLatch.countDown();
                 }

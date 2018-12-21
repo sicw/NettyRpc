@@ -3,10 +3,7 @@ package com.nettyrpc.registry;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -40,9 +37,10 @@ public class ServiceRegistry {
         if (data != null) {
             ZooKeeper zk = connectServer();
             if (zk != null) {
-                AddRootNode(zk); // Add root node if not exist
+                // Add root node if not exist
+                addRootNode(zk);
                 createNode(zk, data);
-                CheckServiceAlive(zk,data);
+                checkServiceAlive(zk,data);
             }
         }
     }
@@ -68,7 +66,7 @@ public class ServiceRegistry {
         return zk;
     }
 
-    private void AddRootNode(ZooKeeper zk){
+    private void addRootNode(ZooKeeper zk){
         try {
             Stat s = zk.exists(Constant.ZK_REGISTRY_PATH, false);
             if (s == null) {
@@ -94,8 +92,14 @@ public class ServiceRegistry {
         }
     }
 
-    private void CheckServiceAlive(ZooKeeper zk, String data) {
-        ScheduledExecutorService scheduled = new ScheduledThreadPoolExecutor(1);
+    private void checkServiceAlive(ZooKeeper zk, String data) {
+        String threadName = "checkService";
+        ScheduledExecutorService scheduled = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r,threadName);
+            }
+        });
         scheduled.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {

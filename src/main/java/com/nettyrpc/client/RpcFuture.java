@@ -15,11 +15,12 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * RPCFuture for async RPC call
- * Created by luxiaoxun on 2016-03-15.
+ * RpcFuture for async RPC call
+ * @author luxiaoxun
+ * @date 2016-03-15
  */
-public class RPCFuture implements Future<Object> {
-    private static final Logger logger = LoggerFactory.getLogger(RPCFuture.class);
+public class RpcFuture implements Future<Object> {
+    private static final Logger logger = LoggerFactory.getLogger(RpcFuture.class);
 
     private Sync sync;
     private RpcRequest request;
@@ -27,10 +28,10 @@ public class RPCFuture implements Future<Object> {
     private long startTime;
     private long responseTimeThreshold = 5000;
 
-    private List<AsyncRPCCallback> pendingCallbacks = new ArrayList<AsyncRPCCallback>();
+    private List<AsyncRpcCallback> pendingCallbacks = new ArrayList<AsyncRpcCallback>();
     private ReentrantLock lock = new ReentrantLock();
 
-    public RPCFuture(RpcRequest request) {
+    public RpcFuture(RpcRequest request) {
         this.sync = new Sync();
         this.request = request;
         this.startTime = System.currentTimeMillis();
@@ -91,7 +92,7 @@ public class RPCFuture implements Future<Object> {
     private void invokeCallbacks() {
         lock.lock();
         try {
-            for (final AsyncRPCCallback callback : pendingCallbacks) {
+            for (final AsyncRpcCallback callback : pendingCallbacks) {
                 runCallback(callback);
             }
         } finally {
@@ -99,7 +100,7 @@ public class RPCFuture implements Future<Object> {
         }
     }
 
-    public RPCFuture addCallback(AsyncRPCCallback callback) {
+    public RpcFuture addCallback(AsyncRpcCallback callback) {
         lock.lock();
         try {
             if (isDone()) {
@@ -113,7 +114,7 @@ public class RPCFuture implements Future<Object> {
         return this;
     }
 
-    private void runCallback(final AsyncRPCCallback callback) {
+    private void runCallback(final AsyncRpcCallback callback) {
         final RpcResponse res = this.response;
         RpcClient.submit(new Runnable() {
             @Override
@@ -131,8 +132,14 @@ public class RPCFuture implements Future<Object> {
 
         private static final long serialVersionUID = 1L;
 
-        //future status
+        /**
+         * unlock state
+         */
         private final int done = 1;
+
+        /**
+         * lock state
+         */
         private final int pending = 0;
 
         @Override
@@ -143,11 +150,7 @@ public class RPCFuture implements Future<Object> {
         @Override
         protected boolean tryRelease(int arg) {
             if (getState() == pending) {
-                if (compareAndSetState(pending, done)) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return compareAndSetState(pending, done);
             } else {
                 return true;
             }

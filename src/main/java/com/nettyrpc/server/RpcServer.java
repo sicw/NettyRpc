@@ -84,8 +84,14 @@ public class RpcServer implements ApplicationContextAware, InitializingBean {
         if (threadPoolExecutor == null) {
             synchronized (RpcServer.class) {
                 if (threadPoolExecutor == null) {
+                    String threadName = "receive-channelRead-task";
                     threadPoolExecutor = new ThreadPoolExecutor(16, 16, 600L,
-                            TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536));
+                            TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536), new ThreadFactory() {
+                        @Override
+                        public Thread newThread(Runnable r) {
+                            return new Thread(r,threadName);
+                        }
+                    });
                 }
             }
         }
@@ -97,7 +103,6 @@ public class RpcServer implements ApplicationContextAware, InitializingBean {
             logger.info("Loading service: {}", interfaceName);
             handlerMap.put(interfaceName, serviceBean);
         }
-
         return this;
     }
 

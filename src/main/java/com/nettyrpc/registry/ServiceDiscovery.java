@@ -91,13 +91,13 @@ public class ServiceDiscovery {
             this.dataList = dataList;
 
             logger.debug("Service discovery triggered updating connected server node.");
-            UpdateConnectedServer();
+            updateConnectedServer();
         } catch (KeeperException | InterruptedException e) {
             logger.error("", e);
         }
     }
 
-    private void UpdateConnectedServer(){
+    private void updateConnectedServer(){
         ConnectManage.getInstance().updateConnectedServer(this.dataList);
     }
 

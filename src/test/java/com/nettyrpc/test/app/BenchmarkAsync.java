@@ -1,6 +1,6 @@
 package com.nettyrpc.test.app;
 
-import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.RpcFuture;
 import com.nettyrpc.client.RpcClient;
 import com.nettyrpc.client.proxy.IAsyncObjectProxy;
 import com.nettyrpc.registry.ServiceDiscovery;
@@ -28,8 +28,8 @@ public class BenchmarkAsync {
                 public void run() {
                     for (int i = 0; i < requestNum; i++) {
                         try {
-                            IAsyncObjectProxy client = rpcClient.createAsync(HelloService.class);
-                            RPCFuture helloFuture = client.call("hello", Integer.toString(i));
+                            IAsyncObjectProxy client = RpcClient.createAsync(HelloService.class);
+                            RpcFuture helloFuture = client.call("hello", Integer.toString(i));
                             String result = (String) helloFuture.get(3000, TimeUnit.MILLISECONDS);
                             //System.out.println(result);
                             if (!result.equals("Hello! " + i))
@@ -42,8 +42,8 @@ public class BenchmarkAsync {
             });
             threads[i].start();
         }
-        for (int i = 0; i < threads.length; i++) {
-            threads[i].join();
+        for (Thread thread : threads) {
+            thread.join();
         }
         long timeCost = (System.currentTimeMillis() - startTime);
         String msg = String.format("Async call total-time-cost:%sms, req/s=%s", timeCost, ((double) (requestNum * threadNum)) / timeCost * 1000);

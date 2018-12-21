@@ -1,7 +1,7 @@
 package com.nettyrpc.client.proxy;
 
 import com.nettyrpc.client.ConnectManage;
-import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.RpcFuture;
 import com.nettyrpc.client.RpcClientHandler;
 import com.nettyrpc.protocol.RpcRequest;
 import org.slf4j.Logger;
@@ -12,9 +12,15 @@ import java.lang.reflect.Method;
 import java.util.UUID;
 
 /**
- * Created by luxiaoxun on 2016-03-16.
+ * @author luxiaoxun
+ * @date 2016/03/16
  */
 public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
+
+    private final String EQUALS_METHOD_NAME = "equals";
+    private final String HASHCODE_METHOD_NAME = "hashCode";
+    private final String TOSTRING_METHOD_NAME = "toString";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectProxy.class);
     private Class<T> clazz;
 
@@ -26,11 +32,11 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (Object.class == method.getDeclaringClass()) {
             String name = method.getName();
-            if ("equals".equals(name)) {
+            if (EQUALS_METHOD_NAME.equals(name)) {
                 return proxy == args[0];
-            } else if ("hashCode".equals(name)) {
+            } else if (HASHCODE_METHOD_NAME.equals(name)) {
                 return System.identityHashCode(proxy);
-            } else if ("toString".equals(name)) {
+            } else if (TOSTRING_METHOD_NAME.equals(name)) {
                 return proxy.getClass().getName() + "@" +
                         Integer.toHexString(System.identityHashCode(proxy)) +
                         ", with InvocationHandler " + this;
@@ -51,21 +57,20 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
         for (int i = 0; i < method.getParameterTypes().length; ++i) {
             LOGGER.debug(method.getParameterTypes()[i].getName());
         }
-        for (int i = 0; i < args.length; ++i) {
-            LOGGER.debug(args[i].toString());
+        for (Object arg : args) {
+            LOGGER.debug(arg.toString());
         }
 
         RpcClientHandler handler = ConnectManage.getInstance().chooseHandler();
-        RPCFuture rpcFuture = handler.sendRequest(request);
+        RpcFuture rpcFuture = handler.sendRequest(request);
         return rpcFuture.get();
     }
 
     @Override
-    public RPCFuture call(String funcName, Object... args) {
+    public RpcFuture call(String funcName, Object... args) {
         RpcClientHandler handler = ConnectManage.getInstance().chooseHandler();
         RpcRequest request = createRequest(this.clazz.getName(), funcName, args);
-        RPCFuture rpcFuture = handler.sendRequest(request);
-        return rpcFuture;
+        return handler.sendRequest(request);
     }
 
     private RpcRequest createRequest(String className, String methodName, Object[] args) {
@@ -80,24 +85,16 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
         for (int i = 0; i < args.length; i++) {
             parameterTypes[i] = getClassType(args[i]);
         }
+
         request.setParameterTypes(parameterTypes);
-//        Method[] methods = clazz.getDeclaredMethods();
-//        for (int i = 0; i < methods.length; ++i) {
-//            // Bug: if there are 2 methods have the same name
-//            if (methods[i].getName().equals(methodName)) {
-//                parameterTypes = methods[i].getParameterTypes();
-//                request.setParameterTypes(parameterTypes); // get parameter types
-//                break;
-//            }
-//        }
 
         LOGGER.debug(className);
         LOGGER.debug(methodName);
-        for (int i = 0; i < parameterTypes.length; ++i) {
-            LOGGER.debug(parameterTypes[i].getName());
+        for (Class parameterType : parameterTypes) {
+            LOGGER.debug(parameterType.getName());
         }
-        for (int i = 0; i < args.length; ++i) {
-            LOGGER.debug(args[i].toString());
+        for (Object arg : args) {
+            LOGGER.debug(arg.toString());
         }
 
         return request;
@@ -123,9 +120,8 @@ public class ObjectProxy<T> implements InvocationHandler, IAsyncObjectProxy {
                 return Short.TYPE;
             case "java.lang.Byte":
                 return Byte.TYPE;
+            default:
+                return classType;
         }
-
-        return classType;
     }
-
 }

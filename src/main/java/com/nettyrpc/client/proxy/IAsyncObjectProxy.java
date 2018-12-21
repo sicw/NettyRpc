@@ -1,10 +1,17 @@
 package com.nettyrpc.client.proxy;
 
-import com.nettyrpc.client.RPCFuture;
+import com.nettyrpc.client.RpcFuture;
 
 /**
- * Created by luxiaoxun on 2016/3/16.
+ * @author luxiaoxun
+ * @date 2016/3/16
  */
 public interface IAsyncObjectProxy {
-    public RPCFuture call(String funcName, Object... args);
+    /**
+     * 异步调用接口
+     * @param funcName 方法名
+     * @param args 方法参数
+     * @return
+     */
+    public RpcFuture call(String funcName, Object... args);
 }

@@ -62,19 +62,14 @@ public class RpcHandler extends SimpleChannelInboundHandler<RpcRequest> {
 
         logger.debug(serviceClass.getName());
         logger.debug(methodName);
-        for (int i = 0; i < parameterTypes.length; ++i) {
-            logger.debug(parameterTypes[i].getName());
+        for (Class<?> parameterType : parameterTypes) {
+            logger.debug(parameterType.getName());
         }
-        for (int i = 0; i < parameters.length; ++i) {
-            logger.debug(parameters[i].toString());
+        for (Object parameter : parameters) {
+            logger.debug(parameter.toString());
         }
 
-        // JDK reflect
-        /*Method method = serviceClass.getMethod(methodName, parameterTypes);
-        method.setAccessible(true);
-        return method.invoke(serviceBean, parameters);*/
-
-        // Cglib reflect
+        //Cglib reflect
         FastClass serviceFastClass = FastClass.create(serviceClass);
         FastMethod serviceFastMethod = serviceFastClass.getMethod(methodName, parameterTypes);
         return serviceFastMethod.invoke(serviceBean, parameters);

@@ -25,7 +25,7 @@ public class Benchmark {
                 @Override
                 public void run() {
                     for (int i = 0; i < requestNum; i++) {
-                        final HelloService syncClient = rpcClient.create(HelloService.class);
+                        final HelloService syncClient = RpcClient.create(HelloService.class);
                         String result = syncClient.hello(Integer.toString(i));
                         if (!result.equals("Hello! " + i))
                             System.out.print("error = " + result);
@@ -34,8 +34,8 @@ public class Benchmark {
             });
             threads[i].start();
         }
-        for (int i = 0; i < threads.length; i++) {
-            threads[i].join();
+        for (Thread thread : threads) {
+            thread.join();
         }
         long timeCost = (System.currentTimeMillis() - startTime);
         String msg = String.format("Sync call total-time-cost:%sms, req/s=%s", timeCost, ((double) (requestNum * threadNum)) / timeCost * 1000);

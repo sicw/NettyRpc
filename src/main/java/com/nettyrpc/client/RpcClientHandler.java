@@ -12,12 +12,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Created by luxiaoxun on 2016-03-14.
+ * @author luxiaoxun
+ * @date 2016/03/14
  */
 public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
     private static final Logger logger = LoggerFactory.getLogger(RpcClientHandler.class);
 
-    private ConcurrentHashMap<String, RPCFuture> pendingRPC = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, RpcFuture> pendingRPC = new ConcurrentHashMap<>();
 
     private volatile Channel channel;
     private SocketAddress remotePeer;
@@ -45,7 +46,7 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
     @Override
     public void channelRead0(ChannelHandlerContext ctx, RpcResponse response) throws Exception {
         String requestId = response.getRequestId();
-        RPCFuture rpcFuture = pendingRPC.get(requestId);
+        RpcFuture rpcFuture = pendingRPC.get(requestId);
         if (rpcFuture != null) {
             pendingRPC.remove(requestId);
             rpcFuture.done(response);
@@ -62,9 +63,9 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
         channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
 
-    public RPCFuture sendRequest(RpcRequest request) {
+    public RpcFuture sendRequest(RpcRequest request) {
         final CountDownLatch latch = new CountDownLatch(1);
-        RPCFuture rpcFuture = new RPCFuture(request);
+        RpcFuture rpcFuture = new RpcFuture(request);
         pendingRPC.put(request.getRequestId(), rpcFuture);
         channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
             @Override

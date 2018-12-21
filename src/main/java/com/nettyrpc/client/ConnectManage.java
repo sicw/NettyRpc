@@ -21,24 +21,30 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * RPC Connect Manage of ZooKeeper
- * Created by luxiaoxun on 2016-03-16.
+ * @author luxiaoxun
+ * @date 2016/03/16
  */
 public class ConnectManage {
     private static final Logger logger = LoggerFactory.getLogger(ConnectManage.class);
     private volatile static ConnectManage connectManage;
 
     private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
+    private final static String THREAD_NAME = "connect-server";
     private static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(16, 16,
-            600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536));
+            600L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(65536), new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r,THREAD_NAME);
+        }
+    });
 
     private CopyOnWriteArrayList<RpcClientHandler> connectedHandlers = new CopyOnWriteArrayList<>();
-    private Map<InetSocketAddress, RpcClientHandler> connectedServerNodes = new ConcurrentHashMap<>();
+    private Map<SocketAddress, RpcClientHandler> connectedServerNodes = new ConcurrentHashMap<>();
 
     private ReentrantLock lock = new ReentrantLock();
     private Condition connected = lock.newCondition();
-    private long connectTimeoutMillis = 6000;
     private AtomicInteger roundRobin = new AtomicInteger(0);
-    private volatile boolean isRuning = true;
+    private volatile boolean isRunning = true;
 
     private ConnectManage() {
     }
@@ -57,10 +63,11 @@ public class ConnectManage {
     public void updateConnectedServer(List<String> allServerAddress) {
         if (allServerAddress != null) {
             //update local serverNodes cache
-            HashSet<InetSocketAddress> newAllServerNodeSet = new HashSet<InetSocketAddress>();
-            for (int i = 0; i < allServerAddress.size(); ++i) {
-                String[] array = allServerAddress.get(i).split(":");
-                if (array.length == 2) { // Should check IP and port
+            HashSet<SocketAddress> newAllServerNodeSet = new HashSet<SocketAddress>();
+            for (String address : allServerAddress) {
+                String[] array = address.split(":");
+                // Should check IP and port
+                if (array.length == 2) {
                     String host = array[0];
                     int port = Integer.parseInt(array[1]);
                     final InetSocketAddress remotePeer = new InetSocketAddress(host, port);
@@ -69,7 +76,7 @@ public class ConnectManage {
             }
 
             // Add new server node
-            for (final InetSocketAddress serverNodeAddress : newAllServerNodeSet) {
+            for (final SocketAddress serverNodeAddress : newAllServerNodeSet) {
                 if (!connectedServerNodes.keySet().contains(serverNodeAddress)) {
                     connectServerNode(serverNodeAddress);
                 }
@@ -100,7 +107,7 @@ public class ConnectManage {
         connectServerNode((InetSocketAddress) remotePeer);
     }
 
-    private void connectServerNode(final InetSocketAddress remotePeer) {
+    private void connectServerNode(final SocketAddress remotePeer) {
         threadPoolExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -140,10 +147,11 @@ public class ConnectManage {
         }
     }
 
-    private boolean waitingForHandler() throws InterruptedException {
+    private void waitingForHandler() throws InterruptedException {
         lock.lock();
         try {
-            return connected.await(this.connectTimeoutMillis, TimeUnit.MILLISECONDS);
+            long connectTimeoutMillis = 6000;
+            connected.await(connectTimeoutMillis, TimeUnit.MILLISECONDS);
         } finally {
             lock.unlock();
         }
@@ -151,7 +159,7 @@ public class ConnectManage {
 
     public RpcClientHandler chooseHandler() {
         int size = connectedHandlers.size();
-        while (isRuning && size <= 0) {
+        while (isRunning && size <= 0) {
             try {
                 waitingForHandler();
                 size = connectedHandlers.size();
@@ -165,9 +173,8 @@ public class ConnectManage {
     }
 
     public void stop() {
-        isRuning = false;
-        for (int i = 0; i < connectedHandlers.size(); ++i) {
-            RpcClientHandler connectedServerHandler = connectedHandlers.get(i);
+        isRunning = false;
+        for (RpcClientHandler connectedServerHandler : connectedHandlers) {
             connectedServerHandler.close();
         }
         signalAvailableHandler();
