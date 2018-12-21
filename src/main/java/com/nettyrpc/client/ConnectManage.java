@@ -56,50 +56,38 @@ public class ConnectManage {
 
     public void updateConnectedServer(List<String> allServerAddress) {
         if (allServerAddress != null) {
-            if (allServerAddress.size() > 0) {  // Get available server node
-                //update local serverNodes cache
-                HashSet<InetSocketAddress> newAllServerNodeSet = new HashSet<InetSocketAddress>();
-                for (int i = 0; i < allServerAddress.size(); ++i) {
-                    String[] array = allServerAddress.get(i).split(":");
-                    if (array.length == 2) { // Should check IP and port
-                        String host = array[0];
-                        int port = Integer.parseInt(array[1]);
-                        final InetSocketAddress remotePeer = new InetSocketAddress(host, port);
-                        newAllServerNodeSet.add(remotePeer);
-                    }
+            //update local serverNodes cache
+            HashSet<InetSocketAddress> newAllServerNodeSet = new HashSet<InetSocketAddress>();
+            for (int i = 0; i < allServerAddress.size(); ++i) {
+                String[] array = allServerAddress.get(i).split(":");
+                if (array.length == 2) { // Should check IP and port
+                    String host = array[0];
+                    int port = Integer.parseInt(array[1]);
+                    final InetSocketAddress remotePeer = new InetSocketAddress(host, port);
+                    newAllServerNodeSet.add(remotePeer);
                 }
+            }
 
-                // Add new server node
-                for (final InetSocketAddress serverNodeAddress : newAllServerNodeSet) {
-                    if (!connectedServerNodes.keySet().contains(serverNodeAddress)) {
-                        connectServerNode(serverNodeAddress);
-                    }
+            // Add new server node
+            for (final InetSocketAddress serverNodeAddress : newAllServerNodeSet) {
+                if (!connectedServerNodes.keySet().contains(serverNodeAddress)) {
+                    connectServerNode(serverNodeAddress);
                 }
+            }
 
-                // Close and remove invalid server nodes
-                for (int i = 0; i < connectedHandlers.size(); ++i) {
-                    RpcClientHandler connectedServerHandler = connectedHandlers.get(i);
-                    SocketAddress remotePeer = connectedServerHandler.getRemotePeer();
-                    if (!newAllServerNodeSet.contains(remotePeer)) {
-                        logger.info("Remove invalid server node " + remotePeer);
-                        RpcClientHandler handler = connectedServerNodes.get(remotePeer);
-                        if (handler != null) {
-                            handler.close();
-                        }
-                        connectedServerNodes.remove(remotePeer);
-                        connectedHandlers.remove(connectedServerHandler);
-                    }
-                }
-
-            } else { // No available server node ( All server nodes are down )
-                logger.error("No available server node. All server nodes are down !!!");
-                for (final RpcClientHandler connectedServerHandler : connectedHandlers) {
-                    SocketAddress remotePeer = connectedServerHandler.getRemotePeer();
+            // Close and remove invalid server nodes
+            for (int i = 0; i < connectedHandlers.size(); ++i) {
+                RpcClientHandler connectedServerHandler = connectedHandlers.get(i);
+                SocketAddress remotePeer = connectedServerHandler.getRemotePeer();
+                if (!newAllServerNodeSet.contains(remotePeer)) {
+                    logger.info("Remove invalid server node " + remotePeer);
                     RpcClientHandler handler = connectedServerNodes.get(remotePeer);
-                    handler.close();
-                    connectedServerNodes.remove(connectedServerHandler);
+                    if (handler != null) {
+                        handler.close();
+                    }
+                    connectedServerNodes.remove(remotePeer);
+                    connectedHandlers.remove(connectedServerHandler);
                 }
-                connectedHandlers.clear();
             }
         }
     }
@@ -165,10 +153,8 @@ public class ConnectManage {
         int size = connectedHandlers.size();
         while (isRuning && size <= 0) {
             try {
-                boolean available = waitingForHandler();
-                if (available) {
-                    size = connectedHandlers.size();
-                }
+                waitingForHandler();
+                size = connectedHandlers.size();
             } catch (InterruptedException e) {
                 logger.error("Waiting for available node is interrupted! ", e);
                 throw new RuntimeException("Can't connect any servers!", e);

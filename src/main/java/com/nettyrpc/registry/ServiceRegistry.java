@@ -1,7 +1,13 @@
 package com.nettyrpc.registry;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -36,6 +42,7 @@ public class ServiceRegistry {
             if (zk != null) {
                 AddRootNode(zk); // Add root node if not exist
                 createNode(zk, data);
+                CheckServiceAlive(zk,data);
             }
         }
     }
@@ -85,5 +92,32 @@ public class ServiceRegistry {
         catch (InterruptedException ex){
             logger.error("", ex);
         }
+    }
+
+    private void CheckServiceAlive(ZooKeeper zk, String data) {
+        ScheduledExecutorService scheduled = new ScheduledThreadPoolExecutor(1);
+        scheduled.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                logger.debug("check {} service alive",data);
+                try {
+                    List<String> allChildren = zk.getChildren(Constant.ZK_REGISTRY_PATH,false);
+                    List<String> allService = new ArrayList<>();
+                    for (String nodePath : allChildren) {
+                        byte[] aliveServiceAddress = zk.getData(Constant.ZK_REGISTRY_PATH + "/" + nodePath,false,null);
+                        allService.add(new String(aliveServiceAddress));
+                    }
+
+                    if (!allService.contains(data)) {
+                        zk.create(Constant.ZK_DATA_PATH,data.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+                        logger.warn("check service {} not alive, add into zookeeper",data);
+                    }
+                } catch (KeeperException e) {
+                    logger.error("",e);
+                } catch (InterruptedException e) {
+                    logger.error("",e);
+                }
+            }
+        },Constant.ZK_CHECK_ALIVE,Constant.ZK_CHECK_ALIVE, TimeUnit.SECONDS);
     }
 }

@@ -44,6 +44,16 @@ public class ServiceTest {
     }
 
     @Test
+    public void helloTest3() throws InterruptedException {
+        HelloService helloService = rpcClient.create(HelloService.class);
+        for (int i = 0; i < 300; i++) {
+            String result = helloService.hello("World");
+            System.out.println(result);
+            Thread.sleep(3000);
+        }
+    }
+
+    @Test
     public void helloPersonTest() {
         PersonService personService = rpcClient.create(PersonService.class);
         int num = 5;
